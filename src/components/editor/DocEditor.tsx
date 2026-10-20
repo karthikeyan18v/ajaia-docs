@@ -4,15 +4,19 @@ import { EditorContent, useEditor } from '@tiptap/react';
 import Placeholder from '@tiptap/extension-placeholder';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { generateHTML } from '@tiptap/html';
+import { EditorState } from '@tiptap/pm/state';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ShareDialog, type LinkAccess, type Member, type PendingRequest } from '@/components/share/ShareDialog';
 import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { api } from '@/lib/api-client';
 import { extensions } from '@/lib/editor/extensions';
+import { joinPages, pageLabel, splitPages, type Page } from '@/lib/editor/pages';
 import { clockTime } from '@/lib/time';
 import { ConflictBanner } from './ConflictBanner';
 import { HistoryPanel } from './HistoryPanel';
+import { PagesPanel } from './PagesPanel';
 import { SaveStatus } from './SaveStatus';
 import { TitleField } from './TitleField';
 import { Toolbar } from './Toolbar';
@@ -48,9 +52,16 @@ export function DocEditor({
   const [historyOpen, setHistoryOpen] = useState(false);
   const [banner, setBanner] = useState<Notice>(notice);
 
+  // Pages are stored as one doc split by page breaks; the editor shows one page.
+  const pagesRef = useRef<Page[]>(splitPages(doc.content));
+  const [active, setActive] = useState(0);
+  const activeRef = useRef(0);
+  const [labels, setLabels] = useState(() => pagesRef.current.map(pageLabel));
+  const [printHtml, setPrintHtml] = useState<string | null>(null);
+
   const editor = useEditor({
     extensions: [...extensions, Placeholder.configure({ placeholder: 'Start writing…' })],
-    content: doc.content,
+    content: { type: 'doc', content: pagesRef.current[0] },
     editable: canEdit,
     immediatelyRender: false,
     shouldRerenderOnTransaction: false,
@@ -59,7 +70,79 @@ export function DocEditor({
     },
   });
 
-  const { status, autosave } = useAutosave(editor, doc.id, doc.revision, role !== 'viewer');
+  // Copy the visible page back into the page list before reading the whole doc.
+  const syncActive = useCallback(() => {
+    if (editor) pagesRef.current[activeRef.current] = editor.getJSON().content as Page;
+  }, [editor]);
+
+  const allContent = useCallback(() => {
+    syncActive();
+    return joinPages(pagesRef.current);
+  }, [syncActive]);
+
+  const { status, autosave } = useAutosave(editor, doc.id, doc.revision, role !== 'viewer', allContent);
+
+  const refreshLabels = useCallback(() => setLabels(pagesRef.current.map(pageLabel)), []);
+
+  const showPage = useCallback(
+    (i: number) => {
+      if (!editor) return;
+      // A fresh editor state per page: undo history never crosses pages, and no
+      // update event fires, so switching pages doesn't count as an edit.
+      const pageDoc = editor.schema.nodeFromJSON({ type: 'doc', content: pagesRef.current[i] });
+      editor.view.updateState(EditorState.create({ doc: pageDoc, plugins: editor.state.plugins }));
+      activeRef.current = i;
+      setActive(i);
+      window.scrollTo({ top: 0 });
+    },
+    [editor],
+  );
+
+  const selectPage = useCallback(
+    (i: number) => {
+      if (i === activeRef.current) return;
+      syncActive();
+      refreshLabels();
+      showPage(i);
+    },
+    [syncActive, refreshLabels, showPage],
+  );
+
+  const addPage = useCallback(() => {
+    syncActive();
+    pagesRef.current.push([{ type: 'paragraph' }]);
+    refreshLabels();
+    showPage(pagesRef.current.length - 1);
+    editor?.commands.focus('start');
+    autosave.current?.edit();
+  }, [syncActive, refreshLabels, showPage, editor, autosave]);
+
+  // Deleting is safe: the previous state stays in version history.
+  const deletePage = useCallback(
+    (i: number) => {
+      if (pagesRef.current.length < 2) return;
+      syncActive();
+      pagesRef.current.splice(i, 1);
+      refreshLabels();
+      const next = Math.max(0, Math.min(activeRef.current >= i ? activeRef.current - 1 : activeRef.current, pagesRef.current.length - 1));
+      showPage(i === activeRef.current ? Math.max(0, i - 1) : next);
+      autosave.current?.edit();
+    },
+    [syncActive, refreshLabels, showPage, autosave],
+  );
+
+  // Keep the active tab's label in step with its first heading as you type.
+  useEffect(() => {
+    if (!editor) return;
+    const onUpdate = () => {
+      const label = pageLabel(editor.getJSON().content as Page, activeRef.current);
+      setLabels((l) => (l[activeRef.current] === label ? l : l.map((x, j) => (j === activeRef.current ? label : x))));
+    };
+    editor.on('update', onUpdate);
+    return () => {
+      editor.off('update', onUpdate);
+    };
+  }, [editor]);
 
   // Lost edit access mid-session (owner downgraded us): stop editing.
   useEffect(() => {
@@ -103,21 +186,34 @@ export function DocEditor({
     await navigator.clipboard?.writeText(mine).catch(() => {});
     const res = await api<{ content: object; revision: number }>(`/api/docs/${doc.id}`);
     if (!res.ok) return;
-    editor.chain().setMeta('addToHistory', false).setMeta('remote', true).setContent(res.data.content, { emitUpdate: false }).run();
+    pagesRef.current = splitPages(res.data.content);
+    refreshLabels();
+    showPage(0);
     autosave.current?.resolveTakeTheirs(res.data.revision);
-  }, [editor, doc.id, autosave]);
+  }, [editor, doc.id, autosave, refreshLabels, showPage]);
 
   // "Save as PDF" from the print dialog. The print stylesheet keeps only the
   // title and pages; page breaks become real PDF pages. The tab title becomes
   // the suggested file name.
   const downloadPdf = useCallback(async () => {
+    syncActive();
     await autosave.current?.flush();
+    setPrintHtml(
+      pagesRef.current
+        .map((p) => generateHTML({ type: 'doc', content: p } as Parameters<typeof generateHTML>[0], extensions))
+        .join('<div class="print-page-break"></div>'),
+    );
+  }, [autosave, syncActive]);
+
+  useEffect(() => {
+    if (printHtml === null) return;
     const previous = document.title;
     const heading = document.querySelector<HTMLInputElement>('[aria-label="Document title"]')?.value;
     document.title = heading || doc.title;
     window.print();
     document.title = previous;
-  }, [autosave, doc.title]);
+    setPrintHtml(null);
+  }, [printHtml, doc.title]);
 
   const roleChip = useMemo(() => {
     if (role === 'owner') return null;
@@ -170,8 +266,9 @@ export function DocEditor({
         </div>
       </div>
 
-      <main className="mx-auto w-full max-w-[1100px] flex-1 px-0 pb-16 pt-4 sm:px-6 sm:pt-6">
-        <div data-print-root className="paper mx-auto min-h-[80vh] max-w-[860px] px-5 pb-16 pt-8 sm:rounded-[var(--radius-panel)] sm:px-16 sm:pt-14">
+      <main className="mx-auto flex w-full max-w-[1180px] flex-1 flex-col gap-4 px-0 pb-16 pt-4 sm:px-6 sm:pt-6 lg:flex-row lg:gap-6">
+        <PagesPanel labels={labels} active={active} canEdit={canEdit} onSelect={selectPage} onAdd={addPage} onDelete={deletePage} />
+        <div data-print-root className="paper mx-auto min-h-[80vh] w-full max-w-[860px] flex-1 px-5 pb-16 pt-8 sm:rounded-[var(--radius-panel)] sm:px-16 sm:pt-14">
           {banner && 'imported' in banner ? (
             <Notice onClose={() => setBanner(null)}>
               Imported <strong className="font-medium">{banner.imported}</strong>. Review the formatting below.
@@ -200,8 +297,18 @@ export function DocEditor({
 
           <TitleField docId={doc.id} initialTitle={doc.title} canEdit={canEdit} autoFocus={!!notice && 'created' in notice} />
 
+          {labels.length > 1 ? (
+            <p data-print-hide className="mt-1 text-[12px] font-medium uppercase tracking-[0.06em] text-ink-faint">
+              Page {active + 1} of {labels.length}
+            </p>
+          ) : null}
+
+          {printHtml !== null ? (
+            <div className="doc-content print-only mt-4" dangerouslySetInnerHTML={{ __html: printHtml }} />
+          ) : null}
+
           {editor ? (
-            <EditorContent editor={editor} className="mt-4" />
+            <EditorContent editor={editor} className="mt-4" data-print-hide={printHtml !== null ? '' : undefined} />
           ) : (
             <div aria-hidden className="mt-4 flex flex-col gap-3">
               {[92, 80, 86, 60].map((w) => (

@@ -25,7 +25,7 @@ A two-minute review path is in `README.md`. You can also sign up with any email.
 | Architecture note | `ARCHITECTURE.md` |
 | AI workflow note | `AI_WORKFLOW.md` |
 | Build plan | `docs/PLAN.md`; raw AI notes kept during the build in `AI_LOG.md` |
-| Automated tests | `tests/` (86 Vitest unit tests: `pnpm test`) |
+| Automated tests | `tests/` (90 Vitest unit tests: `pnpm test`) |
 | Sample files for import | `public/samples/sample.docx`, `sample.md`, `sample.txt` |
 | Video link | `VIDEO_URL.txt` |
 | Environment template | `.env.example` |
@@ -40,7 +40,7 @@ A two-minute review path is in `README.md`. You can also sign up with any email.
 - Sharing as viewer or editor, change role, remove, with Owned / Shared tabs.
 - Edit-access requests (approve / deny), and "anyone with the link can view".
 - Version history with a protected original and owner restore.
-- Multi-page documents (page breaks), and PDF download through the browser's Save as PDF.
+- Multi-page documents with a Google Docs-style Pages panel (add, switch, delete), and PDF download of every page through the browser's Save as PDF.
 - Import of `.txt`, `.md`, `.docx` (up to 2 MB) into new documents.
 - Validation and error handling on every endpoint.
 

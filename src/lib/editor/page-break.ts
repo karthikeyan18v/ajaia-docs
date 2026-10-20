@@ -31,8 +31,4 @@ export const PageBreak = Node.create({
           chain().insertContent([{ type: 'pageBreak' }, { type: 'paragraph' }]).run(),
     };
   },
-
-  addKeyboardShortcuts() {
-    return { 'Mod-Enter': () => this.editor.commands.setPageBreak() };
-  },
 });

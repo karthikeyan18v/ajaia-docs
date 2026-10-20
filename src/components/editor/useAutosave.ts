@@ -29,7 +29,15 @@ async function patchContent(docId: string, content: unknown, baseRevision: numbe
   }
 }
 
-export function useAutosave(editor: Editor | null, docId: string, initialRevision: number, enabled: boolean) {
+export function useAutosave(
+  editor: Editor | null,
+  docId: string,
+  initialRevision: number,
+  enabled: boolean,
+  getContent?: () => unknown,
+) {
+  const contentRef = useRef(getContent);
+  contentRef.current = getContent;
   const [status, setStatus] = useState<SaveStatus>({ kind: 'saved', at: null });
   const ref = useRef<Autosave | null>(null);
 
@@ -37,7 +45,7 @@ export function useAutosave(editor: Editor | null, docId: string, initialRevisio
     if (!editor || !enabled) return;
     const auto = createAutosave({
       initialRevision,
-      getContent: () => editor.getJSON(),
+      getContent: () => (contentRef.current ? contentRef.current() : editor.getJSON()),
       save: (content, base, { keepalive }) => patchContent(docId, content, base, keepalive),
       onStatus: setStatus,
     });

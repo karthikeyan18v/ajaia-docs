@@ -106,6 +106,11 @@ rate_limits        key, window_start, count
 - Flushes on tab hide, pagehide, Ctrl/Cmd+S and Back. It uses `fetch keepalive` only under 60 KB,
   because browsers cap keepalive bodies at 64 KB.
 
+**Pages.** A document is stored as one Tiptap doc whose pages are separated by `pageBreak` nodes,
+so saving, version history, sharing and conflict checks need no changes. The editor shows one page at
+a time (a Pages panel, like Google Docs tabs) with a fresh editor state per page, so undo never
+crosses pages. PDF export renders every page and uses CSS `break-after: page` between them.
+
 **Import pipeline:**
 1. Size check (2 MB).
 2. Verify the extension matches the bytes: zip magic for `.docx`, valid UTF-8 for text.
@@ -141,7 +146,7 @@ rate_limits        key, window_start, count
 | Suggestion mode / comments | Per-change tracking is days of work; version history covers "protect the original" |
 | OTP / email verification / password reset | Free-tier email delivery would block reviewers from testing sharing |
 | Visual diff between versions | Preview + restore was the core need; a word diff is next |
-| Export to Markdown / PDF | Lower value than history and requests for this brief |
+| Export to Markdown, server-generated PDF | PDF is done through the browser's print engine (no heavy rendering dependency); Markdown export is lower value |
 | Images, tables, links in documents | Smaller XSS surface and schema; imports say what was dropped |
 | Integration tests against a real database | Unit tests cover the pure logic. The SQL paths were verified with scripted end-to-end checks (50+ API calls) against the real database (roles, 404/403/409/422, sharing, requests, link access, restore) |
 

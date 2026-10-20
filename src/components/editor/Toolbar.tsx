@@ -106,13 +106,7 @@ export function Toolbar({ editor }: { editor: Editor }) {
       <ToolButton label="Numbered list" shortcut={`${mod}+Shift+7`} active={s.ordered} onRun={() => chain().toggleOrderedList().run()}>
         <Icon d="M10 6h10M10 12h10M10 18h10M4 5h1v4M4 9h2M4 14.5c0-.8.7-1.5 1.5-1.5S7 13.7 7 14.5c0 1-3 2-3 3.5h3" />
       </ToolButton>
-      <Divider />
-      <ToolButton label="Add page" shortcut={`${mod}+Enter`} onRun={() => chain().setPageBreak().run()}>
-        <span className="flex items-center gap-1.5 px-0.5 text-[13px]">
-          <Icon d="M7 3h7l4 4v5M7 3a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h5M14 3v4h4M17 15v6M14 18h6" />
-          <span className="max-sm:hidden">Page</span>
-        </span>
-      </ToolButton>
+
     </div>
   );
 }
