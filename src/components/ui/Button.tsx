@@ -5,12 +5,13 @@ type Size = 'sm' | 'md';
 
 const base =
   'inline-flex items-center justify-center gap-2 font-medium whitespace-nowrap rounded-[var(--radius-control)] ' +
-  'transition-[background-color,border-color,color,opacity] duration-150 ease-[var(--ease-out-quart)] ' +
-  'disabled:opacity-50 disabled:cursor-not-allowed select-none';
+  'transition-[background-color,border-color,color,opacity,scale,box-shadow] duration-150 ease-[cubic-bezier(0.2,0,0,1)] ' +
+  'active:scale-[0.96] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 select-none';
 
 const variants: Record<Variant, string> = {
-  primary: 'bg-ink text-paper hover:bg-ink/88 active:bg-ink/80',
-  secondary: 'bg-paper text-ink border border-line hover:border-line-strong hover:bg-panel active:bg-panel',
+  primary:
+    'bg-ink text-paper shadow-[0_1px_2px_oklch(0.22_0.012_250/0.25),inset_0_1px_0_oklch(1_0_0/0.12)] hover:bg-ink/90',
+  secondary: 'bg-paper text-ink shadow-[var(--shadow-paper)] hover:shadow-[var(--shadow-lift)]',
   ghost: 'text-ink-soft hover:text-ink hover:bg-panel active:bg-line/60',
   danger: 'bg-danger text-paper hover:bg-danger/90 active:bg-danger/80',
 };

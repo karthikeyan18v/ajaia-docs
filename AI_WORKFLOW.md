@@ -43,7 +43,7 @@
 
 ## How I verified correctness, UX and reliability
 
-- **Unit tests (84, Vitest)** on the logic most likely to be subtly wrong:
+- **Unit tests (86, Vitest)** on the logic most likely to be subtly wrong:
   - the full permission matrix
   - autosave timing with fake timers (debounce, max-wait, single flight, retry, conflict)
   - the version-snapshot rules

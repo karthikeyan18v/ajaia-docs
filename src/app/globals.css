@@ -24,6 +24,34 @@
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
 }
 
+/* Layered, hue-tinted elevation (one light source, from above). */
+:root {
+  --shadow-paper: 0 0 0 1px oklch(0.22 0.012 250 / 0.06), 0 1px 2px oklch(0.22 0.012 250 / 0.06),
+    0 8px 24px -8px oklch(0.22 0.012 250 / 0.12);
+  --shadow-lift: 0 0 0 1px oklch(0.22 0.012 250 / 0.07), 0 2px 4px oklch(0.22 0.012 250 / 0.06),
+    0 16px 32px -12px oklch(0.22 0.012 250 / 0.22);
+  --shadow-float: 0 0 0 1px oklch(0.22 0.012 250 / 0.08), 0 4px 8px oklch(0.22 0.012 250 / 0.06),
+    0 24px 60px -20px oklch(0.22 0.012 250 / 0.35);
+}
+
+.paper {
+  background: var(--color-paper);
+  box-shadow: var(--shadow-paper);
+}
+
+dialog[open] {
+  animation: dialog-in 200ms cubic-bezier(0.2, 0, 0, 1);
+}
+dialog[open]::backdrop {
+  animation: fade-in 200ms cubic-bezier(0.2, 0, 0, 1);
+}
+@keyframes dialog-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+}
+
 html {
   background: var(--color-canvas);
   color: var(--color-ink);
@@ -76,6 +104,63 @@ body {
   float: left;
   height: 0;
   pointer-events: none;
+}
+
+/* Page break: on screen, a strip of canvas that splits the sheet in two.
+   The negative inline margin matches the page padding (px-5 / sm:px-16). */
+.doc-content .page-break {
+  position: relative;
+  height: 44px;
+  margin: 2.5rem -1.25rem;
+  background: var(--color-canvas);
+  box-shadow: inset 0 6px 8px -6px oklch(0.22 0.012 250 / 0.14), inset 0 -6px 8px -6px oklch(0.22 0.012 250 / 0.14);
+  cursor: default;
+}
+@media (min-width: 640px) {
+  .doc-content .page-break { margin-inline: -4rem; }
+}
+.doc-content .page-break::after {
+  content: "New page";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-ink-faint);
+}
+.doc-content .page-break.ProseMirror-selectednode {
+  outline: 2px solid var(--color-mark);
+  outline-offset: -2px;
+}
+
+/* Print / Save as PDF: only the document page, with real page breaks. */
+@media print {
+  @page { margin: 18mm 16mm; }
+  html, body { background: #fff !important; }
+  [data-print-hide], dialog { display: none !important; }
+  [data-print-root] {
+    box-shadow: none !important;
+    max-width: none !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+  }
+  [data-print-root] input { border: 0; box-shadow: none !important; }
+  main { padding: 0 !important; max-width: none !important; }
+  .doc-content { max-width: none; padding-bottom: 0 !important; min-height: 0 !important; }
+  .doc-content .page-break {
+    height: 0;
+    margin: 0;
+    background: none;
+    box-shadow: none;
+    break-after: page;
+  }
+  .doc-content .page-break::after { display: none; }
+  .doc-content h1, .doc-content h2, .doc-content h3 { break-after: avoid; }
 }
 
 @media (prefers-reduced-motion: reduce) {

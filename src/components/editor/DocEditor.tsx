@@ -107,6 +107,18 @@ export function DocEditor({
     autosave.current?.resolveTakeTheirs(res.data.revision);
   }, [editor, doc.id, autosave]);
 
+  // "Save as PDF" from the print dialog. The print stylesheet keeps only the
+  // title and pages; page breaks become real PDF pages. The tab title becomes
+  // the suggested file name.
+  const downloadPdf = useCallback(async () => {
+    await autosave.current?.flush();
+    const previous = document.title;
+    const heading = document.querySelector<HTMLInputElement>('[aria-label="Document title"]')?.value;
+    document.title = heading || doc.title;
+    window.print();
+    document.title = previous;
+  }, [autosave, doc.title]);
+
   const roleChip = useMemo(() => {
     if (role === 'owner') return null;
     return <Chip tone="outline">{canEdit ? 'Can edit' : 'View only'}</Chip>;
@@ -114,7 +126,7 @@ export function DocEditor({
 
   return (
     <div className="flex flex-1 flex-col">
-      <div className="sticky top-14 z-10 border-b border-line bg-canvas/95 backdrop-blur-[2px]">
+      <div data-print-hide className="sticky top-14 z-10 bg-canvas/90 backdrop-blur-[6px]">
         <div className="mx-auto flex max-w-[1100px] flex-col gap-2 px-4 py-2 sm:px-6">
           <div className="flex items-center justify-between gap-3">
             <Link href="/" onClick={goBack} className="flex h-9 items-center gap-1 text-[14px] text-ink-soft hover:text-ink max-sm:h-11">
@@ -122,6 +134,9 @@ export function DocEditor({
             </Link>
             <div className="flex items-center gap-3">
               {canEdit ? <SaveStatus status={status} onRetry={() => autosave.current?.retry()} /> : roleChip}
+              <Button variant="ghost" size="sm" onClick={downloadPdf} aria-label="Download as PDF">
+                PDF
+              </Button>
               {role !== 'viewer' ? (
                 <Button variant="ghost" size="sm" onClick={() => setHistoryOpen(true)} aria-label="Version history">
                   History
@@ -147,12 +162,16 @@ export function DocEditor({
               ) : null}
             </div>
           </div>
-          {canEdit && editor ? <Toolbar editor={editor} /> : null}
+          {canEdit && editor ? (
+            <div className="paper mx-auto w-full max-w-[860px] rounded-full px-2 py-1 max-sm:rounded-[var(--radius-panel)]">
+              <Toolbar editor={editor} />
+            </div>
+          ) : null}
         </div>
       </div>
 
-      <main className="mx-auto w-full max-w-[1100px] flex-1 px-4 pt-6 sm:px-6 sm:pt-10">
-        <div className="mx-auto max-w-[70ch]">
+      <main className="mx-auto w-full max-w-[1100px] flex-1 px-0 pb-16 pt-4 sm:px-6 sm:pt-6">
+        <div data-print-root className="paper mx-auto min-h-[80vh] max-w-[860px] px-5 pb-16 pt-8 sm:rounded-[var(--radius-panel)] sm:px-16 sm:pt-14">
           {banner && 'imported' in banner ? (
             <Notice onClose={() => setBanner(null)}>
               Imported <strong className="font-medium">{banner.imported}</strong>. Review the formatting below.
@@ -223,7 +242,7 @@ export function DocEditor({
 
 function Notice({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
   return (
-    <div role="status" className="mb-6 flex items-start justify-between gap-3 rounded-[var(--radius-panel)] bg-mark-soft px-4 py-3 text-[14px]">
+    <div data-print-hide role="status" className="mb-6 flex items-start justify-between gap-3 rounded-[var(--radius-panel)] bg-mark-soft px-4 py-3 text-[14px]">
       <p>{children}</p>
       <button type="button" onClick={onClose} aria-label="Dismiss" className="-m-1 grid size-8 shrink-0 place-items-center rounded text-ink-soft hover:bg-mark/40">
         ×

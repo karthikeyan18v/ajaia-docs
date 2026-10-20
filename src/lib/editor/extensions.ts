@@ -1,4 +1,5 @@
 import StarterKit from '@tiptap/starter-kit';
+import { PageBreak } from './page-break';
 
 // The single document schema. The browser editor, server-side validation of
 // saves, file import, and the seed script all use this list, so a document can
@@ -9,4 +10,5 @@ export const extensions = [
     heading: { levels: [1, 2, 3] },
     link: false,
   }),
+  PageBreak,
 ];

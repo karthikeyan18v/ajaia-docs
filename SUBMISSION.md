@@ -25,7 +25,7 @@ A two-minute review path is in `README.md`. You can also sign up with any email.
 | Architecture note | `ARCHITECTURE.md` |
 | AI workflow note | `AI_WORKFLOW.md` |
 | Build plan | `docs/PLAN.md`; raw AI notes kept during the build in `AI_LOG.md` |
-| Automated tests | `tests/` (84 Vitest unit tests: `pnpm test`) |
+| Automated tests | `tests/` (86 Vitest unit tests: `pnpm test`) |
 | Sample files for import | `public/samples/sample.docx`, `sample.md`, `sample.txt` |
 | Video link | `VIDEO_URL.txt` |
 | Environment template | `.env.example` |
@@ -40,16 +40,17 @@ A two-minute review path is in `README.md`. You can also sign up with any email.
 - Sharing as viewer or editor, change role, remove, with Owned / Shared tabs.
 - Edit-access requests (approve / deny), and "anyone with the link can view".
 - Version history with a protected original and owner restore.
+- Multi-page documents (page breaks), and PDF download through the browser's Save as PDF.
 - Import of `.txt`, `.md`, `.docx` (up to 2 MB) into new documents.
 - Validation and error handling on every endpoint.
 
-**Stretch items delivered:** version history, and role-based sharing beyond basic access (viewer vs
+**Stretch items delivered:** version history, export to PDF, and role-based sharing beyond basic access (viewer vs
 editor, edit requests, link access).
 
 **Incomplete or not built:**
 - Live presence and real-time co-editing (replaced by conflict detection).
 - Visual diff between versions.
-- Export.
+- Markdown export.
 - OTP / email verification.
 - Integration tests against a database (the SQL paths were verified with scripted end-to-end
   checks; unit tests cover the logic).

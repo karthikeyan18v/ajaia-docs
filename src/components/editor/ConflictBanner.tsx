@@ -19,7 +19,7 @@ export function ConflictBanner({
 }) {
   const [loading, setLoading] = useState(false);
   return (
-    <div role="alert" className="mb-6 flex flex-col gap-3 rounded-[var(--radius-panel)] border border-danger/40 bg-danger-soft px-4 py-3 text-[14px]">
+    <div data-print-hide role="alert" className="mb-6 flex flex-col gap-3 rounded-[var(--radius-panel)] border border-danger/40 bg-danger-soft px-4 py-3 text-[14px]">
       <p>
         <strong className="font-medium">{who}</strong> saved this document{when ? ` at ${when}` : ''} while you were editing.
         Your latest changes aren’t saved yet.

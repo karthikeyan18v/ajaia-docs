@@ -35,9 +35,30 @@ export function assertCan(access: Access, action: Action, message = 'You don’t
 
 // ---------- reads ----------
 
+type JsonNode = { type?: string; text?: string; attrs?: { level?: number }; content?: JsonNode[] };
+
+// First few blocks of a document as plain text, for dashboard thumbnails.
+export function previewBlocks(content: unknown, max = 5): { kind: 'h' | 'p' | 'li'; text: string }[] {
+  const out: { kind: 'h' | 'p' | 'li'; text: string }[] = [];
+  const textOf = (n: JsonNode): string => (n.text ?? '') + (n.content ?? []).map(textOf).join('');
+  const walk = (n: JsonNode, inList = false) => {
+    if (out.length >= max) return;
+    if (n.type === 'heading' || n.type === 'paragraph') {
+      const text = textOf(n).trim();
+      if (text) out.push({ kind: n.type === 'heading' ? 'h' : inList ? 'li' : 'p', text: text.slice(0, 140) });
+      return;
+    }
+    const list = inList || n.type === 'bulletList' || n.type === 'orderedList';
+    (n.content ?? []).forEach((c) => walk(c, list));
+  };
+  walk(content as JsonNode);
+  return out;
+}
+
 export type DocListItem = {
   id: string;
   title: string;
+  preview: ReturnType<typeof previewBlocks>;
   updatedAt: Date;
   updatedByName: string | null;
   ownerId: string;
@@ -52,6 +73,7 @@ export async function listForUser(db: Db, userId: string): Promise<DocListItem[]
     .select({
       id: documents.id,
       title: documents.title,
+      content: documents.content,
       updatedAt: documents.updatedAt,
       updatedByName: editorUser.name,
       ownerId: documents.ownerId,
@@ -64,8 +86,9 @@ export async function listForUser(db: Db, userId: string): Promise<DocListItem[]
     .leftJoin(documentMembers, and(eq(documentMembers.documentId, documents.id), eq(documentMembers.userId, userId)))
     .where(sql`${documents.ownerId} = ${userId} or ${documentMembers.userId} is not null`)
     .orderBy(desc(documents.updatedAt));
-  return rows.map(({ memberRole, ...r }) => ({
+  return rows.map(({ memberRole, content, ...r }) => ({
     ...r,
+    preview: previewBlocks(content),
     role: r.ownerId === userId ? 'owner' : (memberRole ?? 'viewer'),
   }));
 }

@@ -39,6 +39,7 @@ To reset the demo data after a review session, run `pnpm db:seed`.
 |---|---|
 | Documents | Create, rename (click the title), edit, autosave, reopen, owner-only delete |
 | Formatting | Bold, italic, underline, normal text / H1 / H2 / H3, bulleted and numbered lists, undo/redo, keyboard shortcuts |
+| Pages & PDF | **Page** in the toolbar (or Ctrl/Cmd+Enter) starts a new page, shown as a separate sheet. **PDF** opens the print dialog with a clean print layout (just the title and pages, each page break a real PDF page); choose *Save as PDF* |
 | Saving | Saves 1.5 s after you stop typing, at least every 10 s while you type, and when you switch tabs, close the page or press Ctrl/Cmd+S. One retry, then "Couldn't save · Retry" |
 | Concurrency | Every save carries the revision it was based on. A stale save gets 409 and a conflict banner, never a silent overwrite |
 | Sharing | Owner adds people by email as **Can view** (default) or **Can edit**, changes roles, removes access. Dashboard tabs: *All / Owned by me / Shared with me* |
@@ -77,7 +78,7 @@ Quick local Postgres with Docker:
 ## Tests
 
 ```bash
-pnpm test        # 84 unit tests (Vitest)
+pnpm test        # 86 unit tests (Vitest)
 pnpm typecheck
 ```
 
@@ -87,6 +88,7 @@ pnpm typecheck
   in flight, retry-once, 409 conflict, 403, flush, dispose.
 - **`tests/decideSnapshot.test.ts`**: when an edit starts a new version and when it extends the
   current one.
+- **`tests/pageBreak.test.ts`**: page breaks are valid in the shared schema and round-trip through HTML.
 - **`tests/import.test.ts`**: `.txt` / `.md` / real `.docx` conversion, script and image stripping,
   heading clamping, type spoofing, size and empty-file errors.
 

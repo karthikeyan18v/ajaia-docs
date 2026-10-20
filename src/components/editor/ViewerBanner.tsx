@@ -53,7 +53,7 @@ export function ViewerBanner({
   }
 
   return (
-    <div className="mb-6 flex flex-col gap-2 rounded-[var(--radius-panel)] bg-panel px-4 py-3 text-[14px] sm:flex-row sm:items-center sm:justify-between">
+    <div data-print-hide className="mb-6 flex flex-col gap-2 rounded-[var(--radius-panel)] bg-panel px-4 py-3 text-[14px] sm:flex-row sm:items-center sm:justify-between">
       <span className="flex items-center gap-2 text-ink-soft">
         <Avatar name={owner.name} idKey={owner.id} size={22} />
         <span>
