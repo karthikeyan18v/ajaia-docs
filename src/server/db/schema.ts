@@ -9,6 +9,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
 
@@ -91,6 +92,25 @@ export const documentVersions = pgTable(
   (t) => [
     unique('document_versions_doc_no').on(t.documentId, t.versionNo),
     check('document_versions_kind', sql`${t.kind} in ('created', 'imported', 'edit', 'restore')`),
+  ],
+).enableRLS();
+
+// A viewer asking the owner for edit access. At most one pending request per
+// person per document (partial unique index).
+export const accessRequests = pgTable(
+  'access_requests',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    documentId: uuid('document_id').notNull().references(() => documents.id, { onDelete: 'cascade' }),
+    requesterId: uuid('requester_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    status: text('status', { enum: ['pending', 'approved', 'denied'] }).notNull().default('pending'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    decidedAt: timestamp('decided_at', { withTimezone: true }),
+    decidedBy: uuid('decided_by').references(() => users.id, { onDelete: 'set null' }),
+  },
+  (t) => [
+    uniqueIndex('access_requests_one_pending').on(t.documentId, t.requesterId).where(sql`${t.status} = 'pending'`),
+    check('access_requests_status', sql`${t.status} in ('pending', 'approved', 'denied')`),
   ],
 ).enableRLS();
 
